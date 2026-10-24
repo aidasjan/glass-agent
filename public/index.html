@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Glass Agent</title>
+<style>
+  :root {
+    --bg: #f5f3ef; --card: #ffffff; --ink: #1d1b18; --muted: #6f6a62; --line: #e4dfd6;
+    --accent: #7a4b2a; --accent-ink: #ffffff; --soft: #f3ebe3; --ok: #2f7d4f; --warn: #a2551b;
+    --radius: 14px; color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161412; --card: #1f1c19; --ink: #f2eee8; --muted: #a39d93; --line: #34302b;
+            --accent: #d39a6a; --accent-ink: #1d1b18; --soft: #2a2420; --ok: #6cc28e; --warn: #e3a06a; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 16px 48px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin: 8px 0 20px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+  h1 small { display: block; font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+  .status { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.ok { background: var(--ok); } .dot.bad { background: var(--warn); }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; display: flex; gap: 8px; align-items: center; }
+  h2 .n { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--soft); color: var(--accent); font-size: 12px; }
+  label { display: block; font-size: 14px; font-weight: 600; margin: 12px 0 6px; }
+  select, textarea, input[type=text] { width: 100%; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; }
+  textarea { resize: vertical; min-height: 64px; }
+  button { font: inherit; font-weight: 600; border: 0; border-radius: 10px; padding: 12px 16px; cursor: pointer; background: var(--accent); color: var(--accent-ink); }
+  button.ghost { background: var(--soft); color: var(--ink); }
+  button:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+  .row > .grow { flex: 1 1 160px; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .chip { font-size: 13px; background: var(--soft); border-radius: 999px; padding: 4px 10px; }
+  .photo { display: grid; place-items: center; border: 1.5px dashed var(--line); border-radius: 12px; min-height: 140px; cursor: pointer; overflow: hidden; position: relative; text-align: center; padding: 12px; }
+  .photo img { max-height: 260px; border-radius: 8px; }
+  .photo input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .answer { background: var(--soft); border-radius: 12px; padding: 14px; margin-top: 14px; }
+  .answer p { margin: 0 0 8px; font-size: 17px; }
+  .q { font-size: 14px; color: var(--muted); margin: 14px 0 0; }
+  .spinner { width: 16px; height: 16px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; animation: spin .8s linear infinite; vertical-align: -3px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; margin-top: 10px; }
+  td { padding: 8px 0; border-bottom: 1px solid var(--line); }
+  td.num { text-align: right; white-space: nowrap; padding-left: 12px; }
+  tr.total td { border-bottom: 0; font-weight: 700; font-size: 17px; padding-top: 12px; }
+  .report-head { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; font-size: 14px; }
+  .report-head b { display: block; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .error { color: var(--warn); font-size: 14px; margin-top: 10px; }
+  .mic.on { background: var(--warn); color: #fff; }
+  @media (max-width: 420px) { .report-head { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Glass Agent <small>Northside Coffee Service</small></h1>
+    <span class="status"><span class="dot" id="health-dot"></span><span id="health-text">checking…</span></span>
+  </header>
+
+  <section id="job-card">
+    <h2><span class="n">1</span>Job</h2>
+    <div id="job-start">
+      <label for="customer">Customer</label>
+      <select id="customer"><option>Loading…</option></select>
+      <div class="chips" id="customer-equipment"></div>
+      <div class="row"><button id="start-btn">Start job</button></div>
+    </div>
+    <div id="job-active" hidden>
+      <div style="font-weight:700;font-size:18px" id="job-customer"></div>
+      <div class="muted" id="job-meta"></div>
+      <div class="chips" id="job-equipment"></div>
+    </div>
+    <div class="error" id="job-error" hidden></div>
+  </section>
+
+  <section id="ask-card" hidden>
+    <h2><span class="n">2</span>Ask</h2>
+    <label class="photo" id="photo-drop">
+      <span id="photo-hint" class="muted">Tap to take or choose a photo of the machine</span>
+      <img id="photo-preview" alt="" hidden>
+      <input type="file" id="photo" accept="image/*" capture="environment">
+    </label>
+    <label for="question">Question</label>
+    <div class="row" style="margin-top:0">
+      <textarea id="question" class="grow" rows="2" placeholder="Coffee's coming out slow and lukewarm, what's going on?"></textarea>
+    </div>
+    <div class="row">
+      <button id="ask-btn">Ask</button>
+      <button class="ghost mic" id="mic-btn" hidden>🎙 Speak</button>
+      <label class="muted" style="margin:0;font-weight:400;display:flex;gap:6px;align-items:center"><input type="checkbox" id="speak" checked> Read answers aloud</label>
+    </div>
+    <div class="error" id="ask-error" hidden></div>
+    <div id="thread"></div>
+  </section>
+
+  <section id="wrap-card" hidden>
+    <h2><span class="n">3</span>Wrap up</h2>
+    <label for="wrap-text">What did you use?</label>
+    <textarea id="wrap-text" rows="2" placeholder="Descaling kit, new water filter, half an hour of labor"></textarea>
+    <div class="chips" id="wrap-suggest"></div>
+    <div class="row"><button id="wrap-btn">Wrap up job</button></div>
+    <div class="error" id="wrap-error" hidden></div>
+  </section>
+
+  <section id="report-card" hidden>
+    <h2><span class="n">✓</span>Job report</h2>
+    <div class="report-head" id="report-head"></div>
+    <table id="report-lines"></table>
+    <p class="muted" id="report-spoken"></p>
+    <div class="row"><button class="ghost" id="new-job-btn">Start a new job</button></div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const state = { customers: [], job: null, customer: null, photo: null, recommended: [] };
+const fmt = (n) => "$" + Number(n).toFixed(2);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+                set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} } };
+
+function showError(id, msg) { const el = $(id); el.textContent = msg || ""; el.hidden = !msg; }
+
+async function api(path, opts = {}) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 60000);
+  try {
+    const res = await fetch(path, { ...opts, signal: ctrl.signal });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || `Request failed (${res.status})`);
+    return body;
+  } catch (e) {
+    throw new Error(e.name === "AbortError" ? "The server took too long. Try again." : e.message);
+  } finally { clearTimeout(t); }
+}
+
+function speak(text) {
+  if (!$("speak").checked || !("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+}
+
+// --- health -----------------------------------------------------------------
+api("/health").then((h) => {
+  $("health-dot").className = "dot " + (h.anthropic_key ? "ok" : "bad");
+  $("health-text").textContent = h.anthropic_key ? "online" : "no API key";
+}).catch(() => { $("health-dot").className = "dot bad"; $("health-text").textContent = "offline"; });
+
+// --- customers & job ----------------------------------------------------------
+function equipmentChips(list) {
+  return list.map((e) => `<span class="chip">${esc(e.make)} ${esc(e.model)} · ${esc(e.location)}</span>`).join("");
+}
+
+async function loadCustomers() {
+  state.customers = await api("/customers");
+  $("customer").innerHTML = state.customers.map((c) => `<option value="${esc(c.id)}">${esc(c.company)}</option>`).join("");
+  const venue = state.customers.find((c) => c.id === "cust_venue");
+  if (venue) $("customer").value = venue.id;
+  renderCustomerPreview();
+}
+function renderCustomerPreview() {
+  const c = state.customers.find((x) => x.id === $("customer").value);
+  $("customer-equipment").innerHTML = c ? equipmentChips(c.equipment) : "";
+}
+$("customer").addEventListener("change", renderCustomerPreview);
+
+function enterJob(job, customer) {
+  state.job = job; state.customer = customer;
+  store.set("glass-agent.job", job.id);
+  const c = state.customers.find((x) => x.id === customer.id);
+  $("job-start").hidden = true; $("job-active").hidden = false;
+  $("job-customer").textContent = customer.company;
+  $("job-meta").textContent = `${customer.contact_name} · ${customer.address} · job ${job.id}`;
+  $("job-equipment").innerHTML = c ? equipmentChips(c.equipment) : "";
+  const open = job.status === "open";
+  $("ask-card").hidden = !open; $("wrap-card").hidden = !open;
+  $("thread").innerHTML = "";
+  for (const n of job.notes || []) addAnswer(n.question, { answer: n.answer });
+}
+
+$("start-btn").addEventListener("click", async () => {
+  showError("job-error");
+  $("start-btn").disabled = true;
+  try {
+    const { job, customer } = await api("/jobs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ customer_id: $("customer").value }) });
+    $("report-card").hidden = true;
+    enterJob(job, customer);
+  } catch (e) { showError("job-error", e.message); }
+  finally { $("start-btn").disabled = false; }
+});
+
+$("new-job-btn").addEventListener("click", () => {
+  store.set("glass-agent.job", null);
+  state.job = null; state.recommended = [];
+  $("job-start").hidden = false; $("job-active").hidden = true;
+  $("ask-card").hidden = $("wrap-card").hidden = $("report-card").hidden = true;
+  $("wrap-text").value = ""; $("wrap-suggest").innerHTML = ""; clearPhoto();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+// --- photo: resize to ~1568px long side, JPEG under 1 MB ------------------------
+async function resizePhoto(file) {
+  let bmp;
+  try { bmp = await createImageBitmap(file, { imageOrientation: "from-image" }); }
+  catch { throw new Error("This browser can't read that photo format. Try a JPEG or PNG."); }
+  const scale = Math.min(1, 1568 / Math.max(bmp.width, bmp.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bmp.width * scale); canvas.height = Math.round(bmp.height * scale);
+  canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width, canvas.height);
+  for (const q of [0.85, 0.75, 0.6, 0.45]) {
+    const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", q));
+    if (blob && blob.size < 1024 * 1024) return blob;
+  }
+  throw new Error("Couldn't compress the photo under 1 MB.");
+}
+function clearPhoto() {
+  state.photo = null; $("photo").value = "";
+  $("photo-preview").hidden = true; $("photo-hint").hidden = false;
+}
+$("photo").addEventListener("change", async () => {
+  const file = $("photo").files[0];
+  showError("ask-error");
+  if (!file) return clearPhoto();
+  try {
+    state.photo = await resizePhoto(file);
+    $("photo-preview").src = URL.createObjectURL(state.photo);
+    $("photo-preview").hidden = false; $("photo-hint").hidden = true;
+  } catch (e) { clearPhoto(); showError("ask-error", e.message); }
+});
+
+// --- ask ----------------------------------------------------------------------
+function addAnswer(question, r) {
+  const div = document.createElement("div");
+  const machine = r.equipment ? `<span class="chip">Matched: ${esc(r.equipment.make)} ${esc(r.equipment.model)}</span>` : "";
+  const issue = r.suspected_issue ? `<span class="chip">${esc(r.suspected_issue)}</span>` : "";
+  const parts = (r.recommended_parts || []).map((p) => `<span class="chip">${esc(p.name)} · ${fmt(p.price)}</span>`).join("");
+  div.innerHTML = `${question ? `<p class="q">“${esc(question)}”</p>` : ""}
+    <div class="answer"><p>${esc(r.answer)}</p><div class="chips">${machine}${issue}${parts}</div></div>`;
+  $("thread").prepend(div);
+}
+
+$("ask-btn").addEventListener("click", async () => {
+  const question = $("question").value.trim();
+  showError("ask-error");
+  if (!question && !state.photo) return showError("ask-error", "Add a photo, a question, or both.");
+  const btn = $("ask-btn");
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Thinking…';
+  try {
+    const form = new FormData();
+    form.append("job_id", state.job.id);
+    form.append("text", question);
+    if (state.photo) form.append("photo", state.photo, "photo.jpg");
+    const r = await api("/ask", { method: "POST", body: form });
+    addAnswer(question, r);
+    speak(r.answer);
+    $("question").value = "";
+    if (r.recommended_parts?.length) {
+      state.recommended = r.recommended_parts;
+      $("wrap-suggest").innerHTML = r.recommended_parts.map((p) => `<span class="chip">${esc(p.name)}</span>`).join("");
+      if (!$("wrap-text").value) $("wrap-text").value = r.recommended_parts.map((p) => p.name.replace(/\s*\(.*?\)/, "")).join(", ") + ", half an hour of labor";
+    }
+  } catch (e) { showError("ask-error", e.message); }
+  finally { btn.disabled = false; btn.textContent = "Ask"; }
+});
+
+// --- optional voice input (Web Speech API) --------------------------------------
+const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (Recognition) {
+  const mic = $("mic-btn"); mic.hidden = false;
+  let rec = null;
+  mic.addEventListener("click", () => {
+    if (rec) return rec.stop();
+    rec = new Recognition(); rec.lang = "en-US"; rec.interimResults = true;
+    rec.onresult = (e) => { $("question").value = Array.from(e.results).map((x) => x[0].transcript).join(""); };
+    rec.onend = () => { rec = null; mic.classList.remove("on"); mic.textContent = "🎙 Speak"; };
+    rec.onerror = (e) => showError("ask-error", "Voice input: " + e.error);
+    mic.classList.add("on"); mic.textContent = "■ Stop"; rec.start();
+  });
+}
+
+// --- wrap up -------------------------------------------------------------------
+function renderReport({ report: r, spoken }) {
+  $("report-head").innerHTML = `
+    <div><b>Customer</b>${esc(r.customer.company)}<br><span class="muted">${esc(r.customer.contact_name)} · ${esc(r.customer.email)}</span></div>
+    <div><b>Machine</b>${r.equipment ? `${esc(r.equipment.make)} ${esc(r.equipment.model)}<br><span class="muted">${esc(r.equipment.location)} · SN ${esc(r.equipment.serial)}</span>` : "Not identified"}</div>
+    <div><b>Issue</b>${esc(r.issue || "—")}</div>
+    <div><b>Work done</b>${esc(r.fix || "—")}</div>
+    <div><b>Date</b>${esc(r.date)}</div>
+    <div><b>Job</b>${esc(r.job_id)}</div>`;
+  const lines = r.lines.map((l) => `<tr><td>${esc(l.name)}${l.qty > 1 ? ` × ${l.qty}` : ""}</td><td class="num">${fmt(l.amount)}</td></tr>`).join("");
+  const labor = r.labor.hours ? `<tr><td>Labor · ${r.labor.hours} h at ${fmt(r.labor.rate)}/h</td><td class="num">${fmt(r.labor.amount)}</td></tr>` : "";
+  $("report-lines").innerHTML = lines + labor + `<tr class="total"><td>Total</td><td class="num">${fmt(r.total)}</td></tr>`;
+  $("report-spoken").textContent = spoken;
+  $("report-card").hidden = false;
+  $("ask-card").hidden = $("wrap-card").hidden = true;
+  $("report-card").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+$("wrap-btn").addEventListener("click", async () => {
+  showError("wrap-error");
+  const btn = $("wrap-btn");
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Logging job…';
+  try {
+    const r = await api(`/jobs/${state.job.id}/wrapup`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: $("wrap-text").value }) });
+    state.job.status = "completed";
+    renderReport(r);
+    speak(r.spoken);
+  } catch (e) { showError("wrap-error", e.message); }
+  finally { btn.disabled = false; btn.textContent = "Wrap up job"; }
+});
+
+// --- boot: resume the last job after a refresh ---------------------------------
+(async () => {
+  try { await loadCustomers(); } catch (e) { return showError("job-error", "Can't load customers: " + e.message); }
+  const saved = store.get("glass-agent.job");
+  if (!saved) return;
+  try {
+    const { job, customer } = await api(`/jobs/${saved}`);
+    enterJob(job, customer);
+    if (job.status === "completed") renderReport(await api(`/jobs/${job.id}/report`));
+  } catch { store.set("glass-agent.job", null); }
+})();
+</script>
+</body>
+</html>

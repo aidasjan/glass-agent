@@ -1,0 +1,71 @@
+{
+  "_README": "MACHINE MODELS LIVE ONLY IN 'models' BELOW. To match the venue's real machine, edit models.VENUE_MACHINE (make, model, type). Equipment and parts reference models by key.",
+
+  "models": {
+    "VENUE_MACHINE": { "make": "Jura", "model": "E8", "type": "bean-to-cup", "descale_interval_months": 6, "water_filter_interval_months": 3 },
+    "FRANKE_A600": { "make": "Franke", "model": "A600", "type": "bean-to-cup", "descale_interval_months": 6, "water_filter_interval_months": 3 },
+    "WMF_1500S": { "make": "WMF", "model": "1500 S+", "type": "bean-to-cup", "descale_interval_months": 6, "water_filter_interval_months": 3 },
+    "LM_LINEA_PB": { "make": "La Marzocco", "model": "Linea PB", "type": "espresso machine", "descale_interval_months": 12, "water_filter_interval_months": 6 },
+    "BUNN_ICB": { "make": "Bunn", "model": "ICB Infusion", "type": "drip brewer", "descale_interval_months": 6, "water_filter_interval_months": 6 },
+    "FETCO_CBS2152": { "make": "Fetco", "model": "CBS-2152XTS", "type": "drip brewer", "descale_interval_months": 6, "water_filter_interval_months": 6 },
+    "MAHLKONIG_E65S": { "make": "Mahlkönig", "model": "E65S", "type": "grinder" }
+  },
+
+  "labor_rate_per_hour": 95,
+
+  "customers": [
+    { "id": "cust_venue", "company": "Hackathon Venue", "contact_name": "Front Desk", "email": "facilities@hackathon-venue.example", "address": "Demo Hall, 1st floor kitchen" },
+    { "id": "cust_brightline", "company": "Brightline Legal LLP", "contact_name": "Dana Okafor", "email": "dana.okafor@brightline-legal.example", "address": "200 Market St, Suite 1400" },
+    { "id": "cust_harbor", "company": "Harbor Analytics", "contact_name": "Sam Reyes", "email": "sam@harbor-analytics.example", "address": "88 Pier Ave, 3rd floor" },
+    { "id": "cust_maple", "company": "Maple Street Dental", "contact_name": "Priya Nair", "email": "office@maplestreetdental.example", "address": "41 Maple St" },
+    { "id": "cust_foundry", "company": "Foundry Coworking", "contact_name": "Leo Martins", "email": "ops@foundrycowork.example", "address": "12 Foundry Ln" }
+  ],
+
+  "equipment": [
+    { "id": "eq_venue_1", "customer_id": "cust_venue", "model_key": "VENUE_MACHINE", "serial": "VN-24-0117", "location": "Main kitchen counter", "installed": "2024-09-10" },
+    { "id": "eq_bright_1", "customer_id": "cust_brightline", "model_key": "FRANKE_A600", "serial": "FR-A6-55102", "location": "14th floor break room", "installed": "2023-02-01" },
+    { "id": "eq_bright_2", "customer_id": "cust_brightline", "model_key": "BUNN_ICB", "serial": "BN-ICB-9921", "location": "Reception pantry", "installed": "2022-11-15" },
+    { "id": "eq_harbor_1", "customer_id": "cust_harbor", "model_key": "LM_LINEA_PB", "serial": "LM-PB-30388", "location": "Cafe bar", "installed": "2023-06-20" },
+    { "id": "eq_harbor_2", "customer_id": "cust_harbor", "model_key": "MAHLKONIG_E65S", "serial": "MK-E65-7714", "location": "Cafe bar, next to espresso", "installed": "2023-06-20" },
+    { "id": "eq_maple_1", "customer_id": "cust_maple", "model_key": "WMF_1500S", "serial": "WMF-15-40021", "location": "Staff room", "installed": "2024-01-08" },
+    { "id": "eq_foundry_1", "customer_id": "cust_foundry", "model_key": "FETCO_CBS2152", "serial": "FT-2152-6610", "location": "Ground floor kitchen", "installed": "2022-04-04" },
+    { "id": "eq_foundry_2", "customer_id": "cust_foundry", "model_key": "FRANKE_A600", "serial": "FR-A6-58840", "location": "Rooftop lounge", "installed": "2024-05-12" }
+  ],
+
+  "service_history": [
+    { "id": "hist_001", "equipment_id": "eq_venue_1", "customer_id": "cust_venue", "date": "2025-10-02", "issue": "Annual preventive maintenance", "fix": "Full inspection, cleaned brew unit, calibrated grinder", "parts_used": ["SVC-PM-VISIT"] },
+    { "id": "hist_002", "equipment_id": "eq_venue_1", "customer_id": "cust_venue", "date": "2026-03-14", "issue": "Slow brewing, 'Descale' warning on display", "fix": "Full descale cycle, flushed lines", "parts_used": ["DSC-KIT-01"] },
+    { "id": "hist_003", "equipment_id": "eq_venue_1", "customer_id": "cust_venue", "date": "2026-06-09", "issue": "Water filter due, slight off taste", "fix": "Replaced water filter cartridge, reset filter counter", "parts_used": ["WF-CART-BTC"] },
+
+    { "id": "hist_010", "equipment_id": "eq_bright_1", "customer_id": "cust_brightline", "date": "2025-12-03", "issue": "Milk frother not foaming", "fix": "Cleaned milk system, replaced frother wand", "parts_used": ["MLK-CLN-KIT", "FRTH-WAND"] },
+    { "id": "hist_011", "equipment_id": "eq_bright_1", "customer_id": "cust_brightline", "date": "2026-07-21", "issue": "Error code E-14 (brew group blocked)", "fix": "Replaced brew group", "parts_used": ["BRW-GRP-FR"] },
+    { "id": "hist_012", "equipment_id": "eq_bright_2", "customer_id": "cust_brightline", "date": "2026-05-02", "issue": "Weak coffee", "fix": "Descaled, cleaned spray head", "parts_used": ["DSC-KIT-01"] },
+
+    { "id": "hist_020", "equipment_id": "eq_harbor_1", "customer_id": "cust_harbor", "date": "2026-02-11", "issue": "Leaking from group head", "fix": "Replaced group gasket and shower screen", "parts_used": ["GSK-KIT-ESP"] },
+    { "id": "hist_021", "equipment_id": "eq_harbor_2", "customer_id": "cust_harbor", "date": "2026-08-30", "issue": "Grinder jam, inconsistent grind", "fix": "Cleared jam, replaced burr set", "parts_used": ["BURR-SET-E65"] },
+
+    { "id": "hist_030", "equipment_id": "eq_maple_1", "customer_id": "cust_maple", "date": "2026-04-17", "issue": "Water pump noisy, low pressure", "fix": "Replaced water pump", "parts_used": ["PUMP-ULKA"] },
+    { "id": "hist_031", "equipment_id": "eq_maple_1", "customer_id": "cust_maple", "date": "2026-09-05", "issue": "Water filter overdue", "fix": "Replaced water filter cartridge", "parts_used": ["WF-CART-BTC"] },
+
+    { "id": "hist_040", "equipment_id": "eq_foundry_1", "customer_id": "cust_foundry", "date": "2026-01-20", "issue": "Leaking under brewer", "fix": "Replaced cracked drip tray, tightened fittings", "parts_used": ["DRIP-TRAY"] },
+    { "id": "hist_041", "equipment_id": "eq_foundry_2", "customer_id": "cust_foundry", "date": "2026-06-28", "issue": "Preventive maintenance", "fix": "Inspection, descale, filter change", "parts_used": ["SVC-PM-VISIT", "DSC-KIT-01", "WF-CART-BTC"] }
+  ],
+
+  "catalog": [
+    { "sku": "DSC-KIT-01", "name": "Descaling kit", "price": 34.0, "compatible_models": ["VENUE_MACHINE", "FRANKE_A600", "WMF_1500S", "LM_LINEA_PB", "BUNN_ICB", "FETCO_CBS2152"] },
+    { "sku": "WF-CART-BTC", "name": "Water filter cartridge (bean-to-cup)", "price": 42.0, "compatible_models": ["VENUE_MACHINE", "FRANKE_A600", "WMF_1500S"] },
+    { "sku": "WF-CART-COM", "name": "Inline water filter (commercial)", "price": 89.0, "compatible_models": ["LM_LINEA_PB", "BUNN_ICB", "FETCO_CBS2152"] },
+    { "sku": "BRW-GRP-JU", "name": "Brew group assembly", "price": 289.0, "compatible_models": ["VENUE_MACHINE"] },
+    { "sku": "BRW-GRP-FR", "name": "Brew group assembly", "price": 315.0, "compatible_models": ["FRANKE_A600"] },
+    { "sku": "BURR-SET-BTC", "name": "Grinder burr set (bean-to-cup)", "price": 78.0, "compatible_models": ["VENUE_MACHINE", "FRANKE_A600", "WMF_1500S"] },
+    { "sku": "BURR-SET-E65", "name": "Grinder burr set 65mm", "price": 129.0, "compatible_models": ["MAHLKONIG_E65S"] },
+    { "sku": "GSK-KIT-BTC", "name": "Gasket and O-ring kit (bean-to-cup)", "price": 24.0, "compatible_models": ["VENUE_MACHINE", "FRANKE_A600", "WMF_1500S"] },
+    { "sku": "GSK-KIT-ESP", "name": "Group gasket and shower screen kit", "price": 38.0, "compatible_models": ["LM_LINEA_PB"] },
+    { "sku": "MLK-CLN-KIT", "name": "Milk system cleaning kit", "price": 29.0, "compatible_models": ["VENUE_MACHINE", "FRANKE_A600", "WMF_1500S", "LM_LINEA_PB"] },
+    { "sku": "FRTH-WAND", "name": "Milk frother wand", "price": 64.0, "compatible_models": ["VENUE_MACHINE", "FRANKE_A600", "WMF_1500S", "LM_LINEA_PB"] },
+    { "sku": "PUMP-ULKA", "name": "Water pump", "price": 112.0, "compatible_models": ["VENUE_MACHINE", "FRANKE_A600", "WMF_1500S"] },
+    { "sku": "DRIP-TRAY", "name": "Drip tray", "price": 46.0, "compatible_models": ["VENUE_MACHINE", "FRANKE_A600", "WMF_1500S", "BUNN_ICB", "FETCO_CBS2152"] },
+    { "sku": "SPRAY-HEAD", "name": "Spray head", "price": 19.0, "compatible_models": ["BUNN_ICB", "FETCO_CBS2152"] },
+    { "sku": "SVC-PM-VISIT", "name": "Preventive maintenance visit", "price": 149.0, "compatible_models": ["*"] }
+  ]
+}

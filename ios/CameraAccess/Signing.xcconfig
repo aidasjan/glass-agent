@@ -1,0 +1,7 @@
+// Code signing for the Glass Agent app target.
+// Put your Apple Team ID in Signing.local.xcconfig next to this file (gitignored), e.g.
+//   DEVELOPMENT_TEAM = ABCDE12345
+// Find it in Xcode > Settings > Accounts, or under Signing & Capabilities.
+DEVELOPMENT_TEAM =
+
+#include? "Signing.local.xcconfig"

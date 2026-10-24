@@ -1,0 +1,51 @@
+# Dependencies & build output
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Secrets: keys live only in .env / the VM's /etc/glass-agent.env
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.mobileprovision
+# Personal signing settings (Apple Team ID); see ios/CameraAccess/Signing.xcconfig
+*.local.xcconfig
+
+# Runtime data (jobs written by the server)
+data/jobs.json
+data/*.tmp
+
+# Original photos straight off a phone carry GPS/device metadata.
+# Commit only stripped copies in samples/.
+*.HEIC
+*.heic
+*.HEIF
+*.heif
+/*.jpg
+/*.jpeg
+/*.png
+
+# Logs
+*.log
+npm-debug.log*
+
+# Xcode / iOS
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM/
+.swiftpm/
+.build/
+
+# Local tool and editor settings
+.claude/settings.local.json
+.vscode/
+.idea/
+
+# OS
+.DS_Store
