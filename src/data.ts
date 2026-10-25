@@ -37,6 +37,7 @@ export interface Job {
   issue?: string;
   fix?: string;
   wrapup_text?: string;
+  back_office?: { agent_id: string; dashboard_url: string };
   notes:{ at: string; question: string; answer: string }[];
   parts: JobLine[];
   labor_hours: number;
@@ -103,15 +104,6 @@ export function createJsonStore(opts: { seedPath?: string; dataDir?: string } = 
     return writeChain;
   }
 
-  // Completed jobs count as service history for later visits.
-  function jobToHistory(j: Job): HistoryEntry {
-    return {
-      id: j.id, equipment_id: j.equipment_id, customer_id: j.customer_id,
-      date: (j.completed_at ?? j.started_at).slice(0, 10),
-      issue: j.issue ?? "", fix: j.fix ?? "", parts_used: j.parts.map((p) => p.sku),
-    };
-  }
-
   return {
     async listCustomers() {
       return seed.customers;
@@ -122,9 +114,10 @@ export function createJsonStore(opts: { seedPath?: string; dataDir?: string } = 
     async getEquipment(customerId) {
       return equipment.filter((e) => e.customer_id === customerId);
     },
+    // History is the seed data only: jobs logged during demos are saved but never feed back in,
+    // so every new job starts from the same story.
     async getJobHistory({ customerId, equipmentId }) {
-      const done = (await loadJobs()).filter((j) => j.status === "completed").map(jobToHistory);
-      return [...seed.service_history, ...done]
+      return seed.service_history
         .filter((h) => (!customerId || h.customer_id === customerId) && (!equipmentId || h.equipment_id === equipmentId))
         .sort((a, b) => a.date.localeCompare(b.date));
     },

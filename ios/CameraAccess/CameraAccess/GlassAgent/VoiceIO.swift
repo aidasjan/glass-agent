@@ -46,7 +46,9 @@ final class SpeechListener {
 
   var isListening: Bool { continuation != nil }
 
-  static func requestAuthorization() async -> Bool {
+  // nonisolated: Speech calls this callback on a background queue. Inside a @MainActor type the
+  // closure would be main-actor isolated and Swift 6 traps when it runs off the main thread.
+  nonisolated static func requestAuthorization() async -> Bool {
     let speechOK = await withCheckedContinuation { (c: CheckedContinuation<Bool, Never>) in
       SFSpeechRecognizer.requestAuthorization { c.resume(returning: $0 == .authorized) }
     }
@@ -63,8 +65,11 @@ final class SpeechListener {
 
     try configureAudioSession()
     let engine = AVAudioEngine()
-    let format = engine.inputNode.outputFormat(forBus: 0)
-    guard format.sampleRate > 0, format.channelCount > 0 else { throw VoiceError.noAudioInput }
+    // Check the hardware input exists. The tap itself takes `nil` (the node's current format):
+    // switching to the glasses' Bluetooth mic changes the sample rate, and a tap installed with a
+    // stale format throws an Objective-C exception that kills the app.
+    let hardware = engine.inputNode.inputFormat(forBus: 0)
+    guard hardware.sampleRate > 0, hardware.channelCount > 0 else { throw VoiceError.noAudioInput }
 
     let request = SFSpeechAudioBufferRecognitionRequest()
     request.shouldReportPartialResults = true
@@ -73,7 +78,7 @@ final class SpeechListener {
       request.requiresOnDeviceRecognition = true
     }
 
-    Self.installTap(on: engine.inputNode, format: format, request: request)
+    Self.installTap(on: engine.inputNode, request: request)
     engine.prepare()
     try engine.start()
 
@@ -151,11 +156,10 @@ final class SpeechListener {
   // contexts; closures created inside @MainActor code would trap when called elsewhere.
   private nonisolated static func installTap(
     on input: AVAudioInputNode,
-    format: AVAudioFormat,
     request: SFSpeechAudioBufferRecognitionRequest
   ) {
     nonisolated(unsafe) let request = request
-    input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
+    input.installTap(onBus: 0, bufferSize: 1024, format: nil) { buffer, _ in
       request.append(buffer)
     }
   }

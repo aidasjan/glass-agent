@@ -8,7 +8,16 @@
 import MWDATCore
 import SwiftUI
 
-private let brown = Color(red: 0.48, green: 0.29, blue: 0.16)
+// Accent: coffee brown in light mode, a lighter tan in dark mode so it stays legible on black.
+private let brown = Color(uiColor: UIColor { traits in
+  traits.userInterfaceStyle == .dark
+    ? UIColor(red: 0.85, green: 0.62, blue: 0.43, alpha: 1)
+    : UIColor(red: 0.48, green: 0.29, blue: 0.16, alpha: 1)
+})
+// Text on the accent: white on dark brown, near-black on light tan.
+private let onBrown = Color(uiColor: UIColor { traits in
+  traits.userInterfaceStyle == .dark ? UIColor(white: 0.1, alpha: 1) : .white
+})
 
 struct GlassAgentView: View {
   @State private var camera: CameraViewModel
@@ -90,13 +99,26 @@ private struct CustomerPicker: View {
           Button {
             Task { await vm.startJob(for: customer) }
           } label: {
-            VStack(alignment: .leading, spacing: 4) {
-              Text(customer.company).font(.headline).foregroundStyle(.primary)
-              Text((customer.equipment ?? []).map { "\($0.make) \($0.model)" }.joined(separator: " · "))
-                .font(.subheadline).foregroundStyle(.secondary)
+            HStack(spacing: 12) {
+              Image(systemName: "building.2.fill")
+                .font(.title3).foregroundStyle(brown)
+                .frame(width: 32)
+              VStack(alignment: .leading, spacing: 3) {
+                Text(customer.company)
+                  .font(.body.weight(.semibold)).foregroundStyle(Color(.label))
+                Text((customer.equipment ?? []).map { "\($0.make) \($0.model)" }.joined(separator: " · "))
+                  .font(.subheadline).foregroundStyle(Color(.secondaryLabel))
+                  .lineLimit(2)
+              }
+              Spacer(minLength: 8)
+              Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold)).foregroundStyle(Color(.tertiaryLabel))
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
           }
+          // Plain style: the row text keeps full label colours instead of the button tint.
+          .buttonStyle(.plain)
         }
       } header: {
         Text("Start a job")
@@ -119,13 +141,24 @@ private struct JobScreen: View {
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 16) {
+        JobHeader(customer: customer)
         GlassesPreview(camera: camera)
-        AskButton(vm: vm, camera: camera)
         TypedQuestion(vm: vm, camera: camera)
+        if vm.exchanges.isEmpty {
+          Text("Look at the machine, tap Ask, and say what's wrong. Say “wrap it up …” when you're done.")
+            .font(.footnote).foregroundStyle(.secondary)
+        }
         ForEach(vm.exchanges) { ExchangeCard(exchange: $0) }
         WrapUpCard(vm: vm)
       }
       .padding(16)
+    }
+    .scrollDismissesKeyboard(.interactively)
+    // The main action stays pinned at the bottom, never on top of the camera preview.
+    .safeAreaInset(edge: .bottom) {
+      AskButton(vm: vm, camera: camera)
+        .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 6)
+        .background(.bar)
     }
     .navigationTitle(customer.company)
     .navigationBarTitleDisplayMode(.inline)
@@ -141,39 +174,56 @@ private struct GlassesPreview: View {
   var camera: CameraViewModel
 
   var body: some View {
-    ZStack {
-      RoundedRectangle(cornerRadius: 16).fill(Color.black)
-      if let frame = camera.currentVideoFrame, camera.hasReceivedFirstFrame {
-        Image(uiImage: frame).resizable().aspectRatio(contentMode: .fill)
-          .frame(maxWidth: .infinity, maxHeight: .infinity).clipped()
-          .clipShape(RoundedRectangle(cornerRadius: 16))
-      } else if camera.isBusy {
-        ProgressView().tint(.white)
-      } else if !camera.hasActiveDevice {
-        Label("Put on your glasses", systemImage: "eyeglasses").foregroundStyle(.white.opacity(0.8))
-      } else if !camera.hasSession {
-        Button {
-          camera.startSession()
-        } label: {
-          Label("Connect glasses camera", systemImage: "video").padding(.horizontal, 8)
-        }
-        .buttonStyle(.borderedProminent)
-      } else if !camera.hasStream {
-        Button("Start camera") { Task { await camera.startStreaming() } }.buttonStyle(.borderedProminent)
+    // The black box sets the size; the frame is an overlay clipped to it, so a scaled-to-fill
+    // image can never push the layout wider or taller than the box.
+    RoundedRectangle(cornerRadius: 16).fill(Color.black)
+      .frame(maxWidth: .infinity)
+      .frame(height: 240)
+      .overlay { content }
+      .overlay(alignment: .topLeading) { statusPill.padding(10) }
+      .clipShape(RoundedRectangle(cornerRadius: 16))
+  }
+
+  @ViewBuilder
+  private var content: some View {
+    if let frame = camera.currentVideoFrame, camera.hasReceivedFirstFrame {
+      Image(uiImage: frame).resizable().scaledToFill()
+    } else if camera.isBusy {
+      ProgressView().tint(.white)
+    } else if !camera.hasActiveDevice {
+      Label("Put on your glasses", systemImage: "eyeglasses").foregroundStyle(.white.opacity(0.8))
+    } else if !camera.hasSession {
+      Button {
+        camera.startSession()
+      } label: {
+        Label("Connect glasses camera", systemImage: "video").padding(.horizontal, 8)
       }
-      VStack {
-        HStack {
-          Text(camera.isStreaming ? "● Glasses camera live" : "Glasses camera: \(camera.streamStateText)")
-            .font(.caption.weight(.semibold)).foregroundStyle(.white)
-            .padding(.horizontal, 8).padding(.vertical, 4)
-            .background(.black.opacity(0.5), in: Capsule())
-          Spacer()
-        }
-        Spacer()
-      }
-      .padding(10)
+      .buttonStyle(.borderedProminent)
+    } else if !camera.hasStream {
+      Button("Start camera") { Task { await camera.startStreaming() } }.buttonStyle(.borderedProminent)
     }
-    .frame(height: 220)
+  }
+
+  private var statusPill: some View {
+    HStack(spacing: 6) {
+      Circle().fill(camera.isStreaming ? Color.red : Color.gray).frame(width: 7, height: 7)
+      Text(camera.isStreaming ? "Glasses camera" : "Camera \(camera.streamStateText)")
+    }
+    .font(.caption.weight(.semibold)).foregroundStyle(.white)
+    .padding(.horizontal, 10).padding(.vertical, 5)
+    .background(.black.opacity(0.55), in: Capsule())
+  }
+}
+
+private struct JobHeader: View {
+  let customer: Customer
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Text("\(customer.contactName) · \(customer.address)")
+        .font(.subheadline).foregroundStyle(.secondary)
+      FlowChips(items: (customer.equipment ?? []).map { "\($0.make) \($0.model) · \($0.location)" })
+    }
   }
 }
 
@@ -201,35 +251,45 @@ private struct AskButton: View {
     }
   }
 
+  /// One line above the button: live transcript while listening, otherwise a short status.
+  private var caption: String? {
+    switch vm.phase {
+    case .listening:
+      return vm.liveTranscript.isEmpty ? "Listening through your glasses…" : "“\(vm.liveTranscript)”"
+    case .thinking where !vm.liveTranscript.isEmpty:
+      return "“\(vm.liveTranscript)”"
+    case .idle where !camera.isStreaming:
+      return "No glasses camera: questions go without a photo."
+    default:
+      return nil
+    }
+  }
+
   var body: some View {
-    VStack(spacing: 10) {
+    VStack(spacing: 8) {
+      if let caption {
+        Text(caption)
+          .font(.callout).foregroundStyle(.secondary).lineLimit(2)
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
       Button {
         vm.tapAsk(camera: camera)
       } label: {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
           if vm.isWorking {
-            ProgressView().tint(.white)
+            ProgressView().tint(vm.phase == .listening ? .white : onBrown)
           } else {
-            Image(systemName: icon).font(.title2)
+            Image(systemName: icon).font(.title3)
           }
-          Text(title).font(.title3.weight(.semibold))
+          Text(title).font(.headline)
         }
-        .frame(maxWidth: .infinity, minHeight: 64)
-        .foregroundStyle(.white)
-        .background(vm.phase == .listening ? Color.red : brown, in: RoundedRectangle(cornerRadius: 16))
+        .frame(maxWidth: .infinity, minHeight: 56)
+        .foregroundStyle(vm.phase == .listening ? .white : onBrown)
+        .background(vm.phase == .listening ? Color.red : brown, in: RoundedRectangle(cornerRadius: 14))
       }
       .disabled(vm.isWorking)
-
-      if vm.phase == .listening || (!vm.liveTranscript.isEmpty && vm.phase == .thinking) {
-        Text(vm.liveTranscript.isEmpty ? "Ask about the machine you're looking at…" : "“\(vm.liveTranscript)”")
-          .font(.callout).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
-      } else if vm.phase == .idle {
-        Text(camera.isStreaming
-          ? "Look at the machine, tap, and ask. Say “wrap it up …” to finish the job."
-          : "No glasses camera: questions are sent without a photo.")
-          .font(.footnote).foregroundStyle(.secondary)
-      }
     }
+    .animation(.easeInOut(duration: 0.15), value: vm.phase)
   }
 }
 
@@ -283,13 +343,62 @@ private struct FlowChips: View {
   let items: [String]
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      ForEach(items, id: \.self) { item in
-        Text(item).font(.caption.weight(.medium))
+    FlowLayout(spacing: 6) {
+      ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+        Text(item).font(.caption.weight(.medium)).lineLimit(1)
           .padding(.horizontal, 10).padding(.vertical, 4)
-          .background(Color(.secondarySystemBackground), in: Capsule())
+          .background(Color(.tertiarySystemFill), in: Capsule())
       }
     }
+  }
+}
+
+/// Lays children out left to right, wrapping onto new lines when a row is full.
+private struct FlowLayout: Layout {
+  var spacing: CGFloat = 6
+
+  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    let rows = arrange(subviews: subviews, width: proposal.width ?? .infinity)
+    let height = rows.last.map { $0.y + $0.height } ?? 0
+    let width = rows.map(\.width).max() ?? 0
+    return CGSize(width: proposal.width ?? width, height: height)
+  }
+
+  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    for row in arrange(subviews: subviews, width: bounds.width) {
+      var x = bounds.minX
+      for index in row.indices {
+        var size = subviews[index].sizeThatFits(.unspecified)
+        size.width = min(size.width, bounds.width)
+        subviews[index].place(at: CGPoint(x: x, y: bounds.minY + row.y), proposal: ProposedViewSize(size))
+        x += size.width + spacing
+      }
+    }
+  }
+
+  private struct Row {
+    var indices: [Int] = []
+    var y: CGFloat = 0
+    var width: CGFloat = 0
+    var height: CGFloat = 0
+  }
+
+  private func arrange(subviews: Subviews, width: CGFloat) -> [Row] {
+    var rows: [Row] = []
+    var current = Row()
+    for index in subviews.indices {
+      var size = subviews[index].sizeThatFits(.unspecified)
+      size.width = min(size.width, width)
+      if !current.indices.isEmpty && current.width + spacing + size.width > width {
+        rows.append(current)
+        current = Row(y: current.y + current.height + spacing)
+      }
+      current.width += (current.indices.isEmpty ? 0 : spacing) + size.width
+      current.height = max(current.height, size.height)
+      current.indices.append(index)
+    }
+    if !current.indices.isEmpty { rows.append(current) }
+    return rows
   }
 }
 
@@ -347,6 +456,12 @@ private struct ReportSheet: View {
           }
           LabeledContent { Text(money(r.total)).bold() } label: { Text("Total").bold() }
         }
+        if let backOffice = response.backOffice {
+          Section("Back office") {
+            Label("Omnara agent is drafting the customer follow-up", systemImage: "paperplane.fill")
+            Text(backOffice.agentId).font(.caption.monospaced()).foregroundStyle(.secondary)
+          }
+        }
       }
       .navigationTitle("Job report")
       .navigationBarTitleDisplayMode(.inline)
@@ -369,8 +484,9 @@ private struct SettingsSheet: View {
     NavigationStack {
       Form {
         Section {
-          TextField("https://your-backend.example.com", text: $vm.backendURL)
+          TextField("Type your backend URL", text: $vm.backendURL)
             .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+            .textContentType(.URL)
           Button("Test connection") {
             Task {
               do {
@@ -384,6 +500,8 @@ private struct SettingsSheet: View {
           if !status.isEmpty { Text(status).font(.footnote).foregroundStyle(.secondary) }
         } header: {
           Text("Backend URL")
+        } footer: {
+          Text("For example https://glass-agent-yourname.style.dev, or http://192.168.1.23:3000 for a server on your Mac.")
         }
         Section("Glasses") {
           Button("Disconnect glasses", role: .destructive) { wearablesVM.disconnectGlasses() }

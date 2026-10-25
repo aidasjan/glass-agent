@@ -18,10 +18,15 @@ FREESTYLE_KEY="${FREESTYLE_API_KEY:-$(envval FREESTYLE_API_KEY)}"
 ANTHROPIC_KEY="${ANTHROPIC_API_KEY:-$(envval ANTHROPIC_API_KEY)}"
 [ -n "$FREESTYLE_KEY" ] || { echo "Add FREESTYLE_API_KEY to .env" >&2; exit 1; }
 [ -n "$ANTHROPIC_KEY" ] || { echo "Add ANTHROPIC_API_KEY to .env" >&2; exit 1; }
+# Optional Omnara back-office handoff.
+OMNARA_TOKEN_V="${OMNARA_TOKEN:-$(envval OMNARA_TOKEN)}"
+OMNARA_ORG_V="${OMNARA_ORG:-$(envval OMNARA_ORG)}"
+OMNARA_PROJECT_V="${OMNARA_PROJECT:-$(envval OMNARA_PROJECT)}"
+OMNARA_MODEL_V="${OMNARA_MODEL:-$(envval OMNARA_MODEL)}"
 
 # The Freestyle CLI gets only its own key: Anthropic key removed from its environment, and it runs
 # from a temp dir so it can't pick up this project's .env.
-FS=(env -u ANTHROPIC_API_KEY FREESTYLE_API_KEY="$FREESTYLE_KEY" npx -y freestyle@0.2.20)
+FS=(env -u ANTHROPIC_API_KEY -u OMNARA_TOKEN FREESTYLE_API_KEY="$FREESTYLE_KEY" npx -y freestyle@0.2.20)
 
 BUILD=$(mktemp -d)
 trap 'rm -rf "$BUILD"' EXIT
@@ -33,6 +38,11 @@ cd "$BUILD"
 # Only the Anthropic key goes to the VM (not the Freestyle key).
 umask 077
 printf 'ANTHROPIC_API_KEY=%s\nPORT=3000\nDATA_DIR=/var/lib/glass-agent\nNODE_ENV=production\n' "$ANTHROPIC_KEY" > "$BUILD/glass-agent.env"
+if [ -n "$OMNARA_TOKEN_V" ] && [ -n "$OMNARA_ORG_V" ] && [ -n "$OMNARA_PROJECT_V" ]; then
+  printf 'OMNARA_TOKEN=%s\nOMNARA_ORG=%s\nOMNARA_PROJECT=%s\n' "$OMNARA_TOKEN_V" "$OMNARA_ORG_V" "$OMNARA_PROJECT_V" >> "$BUILD/glass-agent.env"
+  [ -n "$OMNARA_MODEL_V" ] && printf 'OMNARA_MODEL=%s\n' "$OMNARA_MODEL_V" >> "$BUILD/glass-agent.env"
+  echo "== Omnara back-office handoff: enabled"
+fi
 
 if ! "${FS[@]}" vm get "$VM" >/dev/null 2>&1; then
   echo "== creating VM '$VM' (Ubuntu, 2 vCPU / 4 GiB)"

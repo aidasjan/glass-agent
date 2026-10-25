@@ -83,7 +83,10 @@ struct CameraAccessApp: App {
         MockDeviceKitView(viewModel: mockDeviceKitViewModel)
       }
       .overlay {
-        DebugMenuView(showDebugMenu: $showDebugMenu)
+        // Glass Agent: only on the registration screen, so it never covers the job screen.
+        if wearablesViewModel.registrationState != .registered {
+          DebugMenuView(showDebugMenu: $showDebugMenu)
+        }
       }
         #endif
 

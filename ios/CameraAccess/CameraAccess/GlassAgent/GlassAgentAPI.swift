@@ -92,10 +92,16 @@ struct Report: Codable, Sendable {
   let total: Double
 }
 
+struct BackOffice: Codable, Sendable {
+  let agentId: String
+  let dashboardUrl: String
+}
+
 struct WrapUpResponse: Codable, Sendable {
   let report: Report
   let spoken: String
   let fallback: Bool
+  let backOffice: BackOffice?
 }
 
 enum APIError: LocalizedError {

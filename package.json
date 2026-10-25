@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "check:data": "tsx scripts/check-data.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:omnara": "tsx scripts/check-omnara.ts"
   },
   "keywords": [],
   "author": "",

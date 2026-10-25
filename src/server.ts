@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { createJsonStore } from "./data.ts";
 import { ask, MODEL, type ImageMediaType } from "./agent.ts";
 import { buildReport, spokenSummary, wrapUp } from "./wrapup.ts";
+import { omnaraConfigured } from "./omnara.ts";
 import { log } from "./log.ts";
 import { fileURLToPath } from "node:url";
 
@@ -37,7 +38,7 @@ function sniffImage(buf: Buffer): ImageMediaType | "heic" | null {
 }
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, model: MODEL, anthropic_key: Boolean(process.env.ANTHROPIC_API_KEY), uptime_s: Math.round(process.uptime()) });
+  res.json({ ok: true, model: MODEL, anthropic_key: Boolean(process.env.ANTHROPIC_API_KEY), omnara: omnaraConfigured(), uptime_s: Math.round(process.uptime()) });
 });
 
 app.get("/customers", async (_req, res) => {
@@ -114,9 +115,9 @@ app.post("/jobs/:id/wrapup", async (req, res) => {
 
   const text = String(req.body?.text ?? "").trim();
   log("wrapup.start", { reqId, jobId: job.id, text });
-  const { report, spoken, fallback } = await wrapUp(db, job, text, reqId);
-  log("wrapup.done", { reqId, jobId: job.id, total: report.total, fallback });
-  res.json({ report, spoken, fallback });
+  const { report, spoken, fallback, back_office } = await wrapUp(db, job, text, reqId);
+  log("wrapup.done", { reqId, jobId: job.id, total: report.total, fallback, backOffice: back_office?.agent_id ?? null });
+  res.json({ report, spoken, fallback, back_office });
 });
 
 app.get("/jobs/:id/report", async (req, res) => {
@@ -131,7 +132,7 @@ async function reportFor(jobId: string) {
   const customer = (await db.getCustomer(job.customer_id))!;
   const e = (await db.getEquipment(job.customer_id)).find((x) => x.id === job.equipment_id);
   const report = buildReport(job, customer, e ? { make: e.make, model: e.model, location: e.location, serial: e.serial } : null);
-  return { report, spoken: spokenSummary(report), fallback: false };
+  return { report, spoken: spokenSummary(report), fallback: false, back_office: job.back_office ?? null };
 }
 
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

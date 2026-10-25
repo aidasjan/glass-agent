@@ -114,6 +114,7 @@
     <div class="report-head" id="report-head"></div>
     <table id="report-lines"></table>
     <p class="muted" id="report-spoken"></p>
+    <p class="muted" id="report-backoffice" hidden></p>
     <div class="row"><button class="ghost" id="new-job-btn">Start a new job</button></div>
   </section>
 </main>
@@ -286,7 +287,7 @@ if (Recognition) {
 }
 
 // --- wrap up -------------------------------------------------------------------
-function renderReport({ report: r, spoken }) {
+function renderReport({ report: r, spoken, back_office }) {
   $("report-head").innerHTML = `
     <div><b>Customer</b>${esc(r.customer.company)}<br><span class="muted">${esc(r.customer.contact_name)} · ${esc(r.customer.email)}</span></div>
     <div><b>Machine</b>${r.equipment ? `${esc(r.equipment.make)} ${esc(r.equipment.model)}<br><span class="muted">${esc(r.equipment.location)} · SN ${esc(r.equipment.serial)}</span>` : "Not identified"}</div>
@@ -298,6 +299,8 @@ function renderReport({ report: r, spoken }) {
   const labor = r.labor.hours ? `<tr><td>Labor · ${r.labor.hours} h at ${fmt(r.labor.rate)}/h</td><td class="num">${fmt(r.labor.amount)}</td></tr>` : "";
   $("report-lines").innerHTML = lines + labor + `<tr class="total"><td>Total</td><td class="num">${fmt(r.total)}</td></tr>`;
   $("report-spoken").textContent = spoken;
+  $("report-backoffice").hidden = !back_office;
+  if (back_office) $("report-backoffice").textContent = `Back-office agent on Omnara is drafting the customer follow-up (agent ${back_office.agent_id}).`;
   $("report-card").hidden = false;
   $("ask-card").hidden = $("wrap-card").hidden = true;
   $("report-card").scrollIntoView({ behavior: "smooth", block: "start" });

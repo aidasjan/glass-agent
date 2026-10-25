@@ -6,6 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { DataStore, Job, JobLine, Part } from "./data.ts";
 import { getClient, MODEL } from "./agent.ts";
 import { log } from "./log.ts";
+import { launchBackOffice } from "./omnara.ts";
 
 const WRAPUP_DEADLINE_MS = 25_000;
 
@@ -143,7 +144,7 @@ export function spokenSummary(r: Report): string {
   });
   if (r.labor.hours > 0) items.push(hoursForSpeech(r.labor.hours));
   const what = items.length ? items.join(", ") : "no parts or labor";
-  return `Job logged for ${r.customer.company}: ${what}. Total $${r.total.toFixed(2)}. The report is ready.`;
+  return `Logged: ${what}, total $${r.total.toFixed(2)}.`;
 }
 
 export async function wrapUp(db: DataStore, job: Job, summary: string, reqId: string) {
@@ -172,6 +173,7 @@ export async function wrapUp(db: DataStore, job: Job, summary: string, reqId: st
   }))!;
   const customer = (await db.getCustomer(job.customer_id))!;
   const report = buildReport(completed, customer, machine && { make: machine.make, model: machine.model, location: machine.location, serial: machine.serial });
-  await db.updateJob(job.id, { total: report.total });
-  return { report, spoken: spokenSummary(report), fallback: usedFallback };
+  const back_office = await launchBackOffice(report, reqId);
+  await db.updateJob(job.id, { total: report.total, back_office: back_office ?? undefined });
+  return { report, spoken: spokenSummary(report), fallback: usedFallback, back_office };
 }

@@ -15,5 +15,5 @@ await Promise.all([1, 2, 3].map((n) => db.updateJob(job.id, { labor_hours: n * 0
 await db.updateJob(job.id, { status: "completed", completed_at: new Date().toISOString(), issue: "slow", fix: "descaled", parts: [{ sku: "DSC-KIT-01", name: "Descaling kit", qty: 1, unit_price: 34 }] });
 const reopened = createJsonStore({ dataDir: dir }); // simulates a restart
 console.log("job after restart:", await reopened.getJob(job.id));
-console.log("history now includes job:", (await reopened.getJobHistory({ equipmentId: eq[0].id })).length === 4);
+console.log("history unchanged by demo jobs:", (await reopened.getJobHistory({ equipmentId: eq[0].id })).length === 3);
 console.log("unknown customer:", await db.getCustomer("nope"));
